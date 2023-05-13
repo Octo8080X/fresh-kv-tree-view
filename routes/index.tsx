@@ -3,7 +3,7 @@ import { Head } from "$fresh/runtime.ts";
 import { StructuredKv } from "../lib/structured_kv.ts";
 import Header from "../components/Header.tsx";
 
-const kv = new StructuredKv(await Deno.openKv("X"));
+const kv = new StructuredKv(await Deno.openKv());
 
 export const handler: Handlers = {
   async GET(req: Request, ctx) {
@@ -98,7 +98,6 @@ function StructuredList(
 export default function Home(
   props: PageProps<{ list: { [key: string]: any }; entries: [] }>,
 ) {
-  console.log(props.data.list);
   return (
     <>
       <Head>

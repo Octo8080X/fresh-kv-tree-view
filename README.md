@@ -1,5 +1,7 @@
 # Fresh KV Tree Viewer
 
+![](./images/index.png)
+
 ### Usage
 
 Start the project:

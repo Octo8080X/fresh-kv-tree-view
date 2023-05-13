@@ -29,7 +29,6 @@ export class StructuredKv {
     const entries = [];
 
     for await (const entry of structureIter) {
-      console.log(JSON.stringify({ key: entry.key, value: entry.value }));
       entries.push(entry);
     }
 
@@ -46,7 +45,6 @@ export class StructuredKv {
           currentObj[k]._v = entry.value;
         }
         currentObj = currentObj[k];
-        console.log(JSON.stringify(structuredKeys));
       });
     });
 
@@ -54,12 +52,10 @@ export class StructuredKv {
   }
 
   async set(key: KvKey, value: unknown): Promise<KvCommitResult> {
-    console.log([key, value]);
     const digestKey = key.slice(0, -1);
     const systemValue =
       ((await this.#kv.get<number>([SYSTEM_KEY, ...digestKey])).value + 1) |
       0;
-    console.log([DATA_KEY, ...key]);
     return this.#kv
       .atomic()
       .check({ key: [DATA_KEY, ...key], versionstamp: null })

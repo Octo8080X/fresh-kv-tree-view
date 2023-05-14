@@ -12,7 +12,8 @@ export class StructuredKv {
   ): KvListIterator<T> {
     const localSelector = {
       ...selector,
-      prefix: [DATA_KEY, ...selector.prefix],
+      start: [DATA_KEY, ...(this.decorateKey(selector.start))],
+      end: [DATA_KEY, ...(this.decorateKey(selector.end))],
     };
     return this.#kv.list(localSelector, options);
   }
@@ -60,7 +61,7 @@ export class StructuredKv {
       .atomic()
       .check({ key: [DATA_KEY, ...key], versionstamp: null })
       .set([SYSTEM_KEY, ...digestKey], systemValue)
-      .set([DATA_KEY, ...key], value)
+      .set([DATA_KEY, ...this.decorateKey(key)], value)
       .commit();
   }
 
@@ -69,5 +70,13 @@ export class StructuredKv {
     options?: { consistency?: KvConsistencyLevel },
   ): Promise<KvEntryMaybe<T>> {
     return this.#kv.get<number>([DATA_KEY, ...key]);
+  }
+
+  decorateKey(key: string[]): string[] {
+    const decoratedKey = !!key && key.length > 0
+      ? key.slice(0, key.length - 1)
+      : [];
+    decoratedKey.push(`v~${key[key.length - 1]}!v`);
+    return decoratedKey;
   }
 }

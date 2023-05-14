@@ -14,7 +14,7 @@ export const handler: Handlers = {
       reqKeys.push(...urlSearchParams.get("keys")!.split(","));
     }
 
-    const structuredKeys = await kv.structureList(reqKeys);
+    const structuredKeys = await kv.structureList([]);
 
     let isViewEntries = false;
 
@@ -34,7 +34,7 @@ export const handler: Handlers = {
 
     const entries = [];
     if (isViewEntries) {
-      const iter = kv.list({ prefix: reqKeys });
+      const iter = kv.list({ start: [...reqKeys, ""], end: [...reqKeys, "~"] });
       for await (const entry of iter) {
         entries.push(entry);
       }
@@ -48,6 +48,26 @@ export const handler: Handlers = {
     const form = await req.formData();
     const keys = form.get("keys")?.split(",");
     const value = form.get("value");
+
+    if (keys.join("")?.length == 0) {
+      console.error("keys is empty");
+      return new Response(null, {
+        status: 303,
+        headers: {
+          "Location": "/",
+        },
+      });
+    }
+
+    if (keys.join("")?.search(/[~!]/) != -1) {
+      console.error("keys is invalid");
+      return new Response(null, {
+        status: 303,
+        headers: {
+          "Location": "/",
+        },
+      });
+    }
 
     await kv.set(keys, value);
 
@@ -112,8 +132,10 @@ export default function Home(
             </div>
             <form method="POST" action="/">
               <div>
-                <p class="w-48">
-                  <label htmlFor="keys">キー(,で分割)</label>
+                <p class="w-64">
+                  <label htmlFor="keys">
+                    キー(',' で分割, '~','!' は使えません)
+                  </label>
                 </p>
                 <input
                   type="text"
@@ -174,7 +196,8 @@ export default function Home(
                       return (
                         <tr class="my-1">
                           <td class="mx-1 border border-slate-300">
-                            {entry.key.slice(1, entry.key.length).join(",")}
+                            {entry.key.slice(1, entry.key.length).join(",")
+                              .replace(/(v\~)|(!v$)/g, "")}
                           </td>
                           <td class="mx-1 border border-slate-300">
                             {entry.value}

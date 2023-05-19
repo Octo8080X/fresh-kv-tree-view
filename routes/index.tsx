@@ -1,9 +1,14 @@
 import { Handlers, type PageProps } from "$fresh/server.ts";
 import { Head } from "$fresh/runtime.ts";
-import { StructuredKv } from "../lib/structured_kv.ts";
+import {
+  StructuredKv,
+  type StructuredKvNode,
+  unDecorateDataKey,
+} from "structured_kv";
 import Header from "../components/Header.tsx";
+import { row_kv } from "../lib/row_kv.ts";
 
-const kv = new StructuredKv(await Deno.openKv());
+const kv = new StructuredKv(row_kv);
 
 export const handler: Handlers = {
   async GET(req: Request, ctx) {
@@ -14,7 +19,7 @@ export const handler: Handlers = {
       reqKeys.push(...urlSearchParams.get("keys")!.split(","));
     }
 
-    const structuredKeys = await kv.structureList([]);
+    const structuredKeys = await kv.structure([]);
 
     let isViewEntries = false;
 
@@ -82,18 +87,15 @@ export const handler: Handlers = {
 
 function StructuredList(
   { list, parentsKeys }: {
-    list: { [key: string]: any };
+    list: StructuredKvNode;
     parentsKeys?: string[];
   },
 ) {
-  const { _v, ...childrenList }: {
-    _v?: number;
-    childrenList: { [key: string]: any };
-  } = list;
+  const { _v, ...childrenList }: StructuredKvNode = list;
 
   return (
     <ul class="pl-5 max-w-md space-y-1 text-gray-500 list-disc list-inside dark:text-gray-400">
-      {Object.keys(childrenList).map((key) => (
+      {Object.keys(childrenList).map((key: string) => (
         <li>
           <a
             href={`?keys=${[...parentsKeys, key].join(",")}`}
@@ -116,7 +118,7 @@ function StructuredList(
 }
 
 export default function Home(
-  props: PageProps<{ list: { [key: string]: any }; entries: [] }>,
+  props: PageProps<{ list: StructuredKvNode; entries: [] }>,
 ) {
   return (
     <>
@@ -198,6 +200,26 @@ export default function Home(
                           <td class="mx-1 border border-slate-300">
                             {entry.key.slice(1, entry.key.length).join(",")
                               .replace(/(v\~)|(!v$)/g, "")}
+                            <form
+                              method="POST"
+                              action="/delete"
+                              id={unDecorateDataKey(entry.key).join("-")}
+                              class="inline-block"
+                            >
+                              <input
+                                type="hidden"
+                                name="keys"
+                                value={unDecorateDataKey(entry.key).join(",")}
+                              />
+                              <a
+                                onClick={`document.getElementById('${
+                                  unDecorateDataKey(entry.key).join("-")
+                                }').submit()`}
+                                class="ml-4 text-xs text-blue-300 hover:text-blue-600 underline"
+                              >
+                                削除
+                              </a>
+                            </form>
                           </td>
                           <td class="mx-1 border border-slate-300">
                             {entry.value}
